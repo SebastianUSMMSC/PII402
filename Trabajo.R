@@ -1,6 +1,4 @@
 
-setwd("D:/Educación/Magister/Semestre_1/PII402 - Procesos Estocasticos/Trabajo")
-
 # Cargar librerías
 library(readxl)
 library(dplyr)
