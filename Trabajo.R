@@ -86,6 +86,10 @@ desplazamiento <- desplazamiento %>%
     )
   )
 
+#%desplazamiento %>% 
+#  select(Activo, Volatilidad, DesviacionEstandar,Promedio) %>% 
+#  print(n = Inf)
+
 
 # Establecer semilla para reproducibilidad
 # ============================
@@ -100,7 +104,7 @@ simular_tick <- function(mu_abs, sigma_abs, c_val, epsilon = 0.0001) {
   runif(1, delta_min, delta_max)
 }
 
-# Generar columna con tick aleatorio para cada activo
+#Generar columna con tick aleatorio para cada activo
 desplazamiento <- desplazamiento %>%
   rowwise() %>%
   mutate(
@@ -332,7 +336,7 @@ fechas_episodios <- identificar_episodios(serie, TP, SL)
 # 3. Crear gráfico con ggplot2
 
 
-ggplot(data, aes(x = Fecha, y = Retorno)) +
+grafico <- ggplot(data, aes(x = Fecha, y = Retorno)) +
   geom_line(color = "steelblue", size = 1) +
   geom_vline(xintercept = as.numeric(fechas_episodios), color = "red", linetype = "dashed") +
   labs(
@@ -341,7 +345,7 @@ ggplot(data, aes(x = Fecha, y = Retorno)) +
     x = "Fecha"
   ) +
   theme_minimal()
-
+grafico
 
 ###############################################################################
 
@@ -372,6 +376,54 @@ for (i in 1:nrow(probabilidades_finales)) {
   
   matrices_transicion[[activo]] <- P
 }
+
+# Extraer matriz de transición y nombres de estados
+ejemplo <- matrices_transicion[["LTM"]]
+estados <- mallas_por_activo[["LTM"]]
+
+# Convertir los nombres de estado a texto (opcionalmente con formato)
+nombres_estados <- sprintf("%.4f", estados)  # redondear a 4 decimales
+
+# Asignar nombres a filas y columnas
+rownames(ejemplo) <- nombres_estados
+colnames(ejemplo) <- nombres_estados
+ejemplo
+
+##############################################################################
+
+#Simulacion
+
+markov <- function(init,mat,n,labels) { 
+  if (missing(labels)) labels <- 1:length(init)
+  simlist <- numeric(n+1)
+  states <- 1:length(init)
+  simlist[1] <- sample(states,1,prob=init)
+  for (i in 2:(n+1)) 
+  { simlist[i] <- sample(states,1,prob=mat[simlist[i-1],]) }
+  labels[simlist]
+}
+
+
+init <- c(0, 0, 1, 0, 0, 0, 0, 0, 0)
+
+simlist <- markov(init,ejemplo,25,nombres_estados)
+simlist
+
+sim <- replicate(10000,markov(init,ejemplo,25,nombres_estados)[26])
+table(sim)/10000
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ################################################################################
@@ -444,10 +496,15 @@ factor <- sapply(resultados_cadena, function(x) {
 })
 
 # Tabla
-probs_df <- data.frame(ProbabilidadExito = probs_exito, DiasEsperados = probs_dias, Ajuste = factor)
+probs_df <- data.frame(
+  ProbabilidadExito = round(probs_exito, 4),
+  DiasEsperados = round(probs_dias, 4),
+  Ajuste = round(factor, 4)
+)
 
 # Mostrar el resultado
 print(probs_df)
+
 
 
 
@@ -468,3 +525,8 @@ writeData(wb, sheet = "Probabilidades", x = data.frame(Activo = rownames(probs_d
 
 # Guardar archivo Excel
 saveWorkbook(wb, "Datos_Portafolio_Markowitz.xlsx", overwrite = TRUE)
+
+
+
+
+
